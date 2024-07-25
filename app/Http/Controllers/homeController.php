@@ -38,6 +38,7 @@ class HomeController extends Controller
 
 public function filterData(Request $request)
 {
+    $kelasNama = $request->get('kelas');
     $query = Siswa::select(
         'siswas.nama',
         'siswas.noinduk',
@@ -50,18 +51,19 @@ public function filterData(Request $request)
     ->join('kelas', 'kelas.id', '=', 'siswas.id_kelas')
     ->join('gurus', 'gurus.id_kelas', '=', 'kelas.id');
 
-    if ($request->has('kelas') && $request->kelas !== '') {
-        $query->where(DB::raw("CONCAT(kelas.nama, ' - ', kelas.jurusan)"), $request->kelas);
+    if ($kelasNama) {
+        $query->where(DB::raw("CONCAT(kelas.nama, ' - ', kelas.jurusan)"), $kelasNama);
     }
 
-    $data = $query->orderByRaw("CAST(SUBSTRING_INDEX(kelas.nama, '-', 1) AS UNSIGNED), kelas.jurusan, kelas.nama")
-                 ->paginate(10);
+    $data = $query->orderBy('kelas.nama')
+                  ->paginate(10);
 
     return response()->json([
         'data' => $data->items(),
         'pagination' => $data->links()->toHtml(),
     ]);
 }
+
 
 public function alldata(Request $request)
 {

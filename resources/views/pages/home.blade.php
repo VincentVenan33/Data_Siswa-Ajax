@@ -32,13 +32,9 @@
                         <div class="form-group">
                             <div class="row">
                                 <div class="col-md-3">
-                                    <label for="filterKelas">Filter by Kelas:</label>
-                                    <select id="filterKelas" class="form-control" style="width: 100%;">
-                                        <option selected="true" disabled="disabled">Pilih Kelas</option>
-                                        @foreach(['1A - IPA', '1B - IPA', '1C - IPA', '1A - IPS', '1B - IPS', '1C - IPS', '1A - BAHASA', '1B - BAHASA', '1C - BAHASA', '2A - IPA', '2B - IPA', '2C - IPA', '2A - IPS', '2B - IPS', '2C - IPS', '2A - BAHASA', '2B - BAHASA', '2C - BAHASA', '3A - IPA', '3B - IPA', '3C - IPA', '3A - IPS', '3B - IPS', '3C - IPS', '3A - BAHASA', '3B - BAHASA', '3C - BAHASA'] as $kelas)
-                                            <option value="{{ $kelas }}">{{ $kelas }}</option>
-                                        @endforeach
-                                    </select>
+                                    <label for="filterKelas" class="control-label">Filter Kelas</label>
+                                    <select class="form-control" id="filterKelas"></select>
+                                    <div class="alert alert-danger mt-2 d-none" role="alert" id="alert-kelas"></div>
                                 </div>
                                 <div class="col-md-4">
                                     <button id="btnAllData" class="btn btn-success mt-4"><i class="now-ui-icons arrows-1_refresh-69"></i></button>
@@ -71,7 +67,7 @@
                                 @endforeach
                             </tbody>
                         </table>
-                        <nav aria-label="Table Paging" class="mb-0 text-muted">
+                        <nav aria-label="Table Paging" class="mb-0 text-muted" id="pagination-nav">
                             <ul class="pagination justify-content-center mb-0" id="pagination">
                                 <li class="page-item{{ ($data->currentPage() == 1) ? ' disabled' : '' }}">
                                     <a class="page-link" href="{{ $data->previousPageUrl() }}" aria-label="Previous">
@@ -98,118 +94,132 @@
         </div>
     </div>
     <script>
-        document.addEventListener('DOMContentLoaded', function () {
-            // Handler untuk filter kelas
-            $('#filterKelas').change(function (e) {
-                e.preventDefault();
-                fetchFilteredData($(this).val());
-            });
+        $(document).ready(function() {
+        // Load categories into the filter dropdown
+        $.ajax({
+            url: '/carikelas', // Menggunakan route yang telah didefinisikan
+            type: 'GET',
+            success: function(response) {
+                let kelasDropdown = $('#filterKelas');
+                kelasDropdown.empty(); // Clear existing options
 
-            // Handler untuk tombol "All Data"
-            $('#btnAllData').click(function (e) {
-                e.preventDefault();
-                // Set filterKelas ke nilai default
-                $('#filterKelas').val('Pilih Kelas');
-                fetchAllData();
-            });
+                // Add default option
+                kelasDropdown.append('<option selected="true" disabled="disabled">Pilih Kelas Buku</option>');
 
-            function fetchFilteredData(selectedKelas) {
-                let token = $("meta[name='csrf-token']").attr("content");
-
-                $.ajax({
-                    url: '{{ route("filterData") }}',
-                    type: 'GET',
-                    cache: false,
-                    data: {
-                        kelas: selectedKelas,
-                        _token: token
-                    },
-                    success: function (response) {
-                        console.log("AJAX Response:", response); // Debugging
-
-                        // Kosongkan baris tabel yang ada
-                        $('#dataTable tbody').empty();
-                        $('#pagination').empty();
-
-                        // Perbarui baris tabel
-                        if (response.data.length > 0) {
-                            $.each(response.data, function (index, item) {
-                                var row = '<tr>' +
-                                    '<td>' + item.nama + '</td>' +
-                                    '<td>' + item.noinduk + '</td>' +
-                                    '<td>' + item.nisn + '</td>' +
-                                    '<td>' + item.nama_guru + '</td>' +
-                                    '<td>' + item.nip + '</td>' +
-                                    '<td>' + item.jabatan + '</td>' +
-                                    '<td>' + item.nama_jurusan + '</td>' +
-                                    '</tr>';
-                                $('#dataTable tbody').append(row);
-                            });
-                        } else {
-                            // Tampilkan pesan jika tidak ada data
-                            var row = '<tr><td colspan="7" class="text-center">Tidak ada data.</td></tr>';
-                            $('#dataTable tbody').append(row);
-                        }
-
-                        // Perbarui paginasi (jika ada)
-                        if (response.pagination) {
-                            $('#pagination').html(response.pagination);
-                        }
-                    },
-                    error: function (xhr, status, error) {
-                        console.error("AJAX Error:", error);
-                    }
+                // Populate dropdown with data from response
+                response.data.forEach(function(kelas) {
+                    let option = `<option value="${kelas.nama} - ${kelas.jurusan}">${kelas.nama} - ${kelas.jurusan}</option>`;
+                    kelasDropdown.append(option);
                 });
-            }
-
-            function fetchAllData() {
-                let token = $("meta[name='csrf-token']").attr("content");
-
-                $.ajax({
-                    url: '{{ route("alldata") }}',
-                    type: 'GET',
-                    cache: false,
-                    data: {
-                        _token: token
-                    },
-                    success: function (response) {
-                        console.log("AJAX Response:", response); // Debugging
-
-                        // Kosongkan baris tabel yang ada
-                        $('#dataTable tbody').empty();
-                        $('#pagination').empty();
-
-                        // Perbarui baris tabel
-                        if (response.data.length > 0) {
-                            $.each(response.data, function (index, item) {
-                                var row = '<tr>' +
-                                    '<td>' + item.nama + '</td>' +
-                                    '<td>' + item.noinduk + '</td>' +
-                                    '<td>' + item.nisn + '</td>' +
-                                    '<td>' + item.nama_guru + '</td>' +
-                                    '<td>' + item.nip + '</td>' +
-                                    '<td>' + item.jabatan + '</td>' +
-                                    '<td>' + item.nama_jurusan + '</td>' +
-                                    '</tr>';
-                                $('#dataTable tbody').append(row);
-                            });
-                        } else {
-                            // Tampilkan pesan jika tidak ada data
-                            var row = '<tr><td colspan="7" class="text-center">Tidak ada data.</td></tr>';
-                            $('#dataTable tbody').append(row);
-                        }
-
-                        // Perbarui paginasi (jika ada)
-                        if (response.pagination) {
-                            $('#pagination').html(response.pagination);
-                        }
-                    },
-                    error: function (xhr, status, error) {
-                        console.error("AJAX Error:", error);
-                    }
-                });
+            },
+            error: function(error) {
+                console.error('Error fetching kelas data', error);
             }
         });
+    // Handler untuk filter kelas
+    $('#filterKelas').change(function(e) {
+        e.preventDefault();
+        fetchFilteredData($(this).val());
+        $('#pagination-nav').hide();
+    });
+
+    // Handler untuk tombol "All Data"
+    $('#btnAllData').click(function(e) {
+        e.preventDefault();
+        // Set filterKelas ke nilai default
+        $('#filterKelas').val('Pilih Kelas');
+        fetchAllData();
+        $('#pagination-nav').show();
+    });
+
+    function fetchFilteredData(selectedKelas) {
+    let token = $("meta[name='csrf-token']").attr("content");
+
+    $.ajax({
+        url: '{{ route("filterData") }}',
+        type: 'GET',
+        cache: false,
+        data: {
+            kelas: selectedKelas,
+            _token: token
+        },
+        success: function(response) {
+            console.log("AJAX Response:", response); // Debugging
+
+            $('#dataTable tbody').empty();
+
+            if (response.data.length > 0) {
+                $.each(response.data, function(index, item) {
+                    var row = '<tr>' +
+                                '<td>' + item.nama + '</td>' +
+                                '<td>' + item.noinduk + '</td>' +
+                                '<td>' + item.nisn + '</td>' +
+                                '<td>' + item.nama_guru + '</td>' +
+                                '<td>' + item.nip + '</td>' +
+                                '<td>' + item.jabatan + '</td>' +
+                                '<td>' + item.nama_jurusan + '</td>' +
+                                '</tr>';
+                    $('#dataTable tbody').append(row);
+                });
+            } else {
+                var row = '<tr><td colspan="7" class="text-center">Tidak ada data.</td></tr>';
+                $('#dataTable tbody').append(row);
+            }
+
+            $('#pagination-nav').show(); // Show pagination after data is loaded
+            $('#filterKelas').val('Pilih Kelas');
+        },
+        error: function(xhr, status, error) {
+            console.error("AJAX Error:", error);
+        }
+    });
+}
+
+function fetchAllData() {
+    let token = $("meta[name='csrf-token']").attr("content");
+
+    $.ajax({
+        url: '{{ route("alldata") }}',
+        type: 'GET',
+        cache: false,
+        data: {
+            _token: token
+        },
+        success: function(response) {
+            console.log("AJAX Response:", response); // Debugging
+
+            // Empty existing table rows
+            $('#dataTable tbody').empty();
+
+            // Populate table with new data
+            if (response.data.length > 0) {
+                $.each(response.data, function(index, item) {
+                    var row = '<tr>' +
+                                '<td>' + item.nama + '</td>' +
+                                '<td>' + item.noinduk + '</td>' +
+                                '<td>' + item.nisn + '</td>' +
+                                '<td>' + item.nama_guru + '</td>' +
+                                '<td>' + item.nip + '</td>' +
+                                '<td>' + item.jabatan + '</td>' +
+                                '<td>' + item.nama_jurusan + '</td>' +
+                                '</tr>';
+                    $('#dataTable tbody').append(row);
+                });
+            } else {
+                var row = '<tr><td colspan="7" class="text-center">Tidak ada data.</td></tr>';
+                $('#dataTable tbody').append(row);
+            }
+
+            // Update pagination
+            $('#pagination').html(response.pagination);
+        },
+        error: function(xhr, status, error) {
+            console.error("AJAX Error:", error);
+        }
+    });
+}
+
+});
     </script>
 
 @endsection
